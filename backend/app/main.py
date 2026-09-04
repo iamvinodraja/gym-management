@@ -31,6 +31,7 @@ from app.routes import (
 # Auto create tables
 Base.metadata.create_all(bind=engine)
 
+
 app = FastAPI(
     title="Pakistani Gym Management System",
     description="Modern, simple, fast, and practical Gym Management System tailored for Pakistani gyms",
