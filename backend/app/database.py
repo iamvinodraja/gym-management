@@ -22,7 +22,8 @@ if env_file.exists():
 DATABASE_TYPE = os.getenv("DATABASE_TYPE", "auto").lower()
 
 # Supabase / PostgreSQL Configuration
-SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL")
+DEFAULT_SUPABASE_URL = "postgresql://postgres:Passwardhacked123@db.hhwdtcmcotqmieigmdxx.supabase.co:5432/postgres"
+SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL") or DEFAULT_SUPABASE_URL
 
 # MySQL Configuration
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
@@ -36,6 +37,7 @@ SQLITE_DB_PATH = os.getenv("SQLITE_DB_PATH", "gym_management.db")
 
 engine = None
 db_selected = "sqlite"
+last_db_error = None
 
 # 1. Try Supabase / PostgreSQL if URL provided
 if SUPABASE_DB_URL and SUPABASE_DB_URL.strip():
@@ -60,6 +62,7 @@ if SUPABASE_DB_URL and SUPABASE_DB_URL.strip():
         db_selected = "supabase"
         logger.info("Successfully connected to Supabase PostgreSQL database!")
     except Exception as e:
+        last_db_error = str(e)
         logger.warning(f"Failed to connect to Supabase PostgreSQL ({e}). Checking alternative databases...")
 
 # 2. Try MySQL if Supabase wasn't connected and DATABASE_TYPE is mysql or auto
@@ -114,3 +117,6 @@ def get_db():
 
 def get_active_db_type():
     return db_selected
+
+def get_db_error():
+    return last_db_error

@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.database import engine, Base, get_active_db_type
+from app.database import engine, Base, get_active_db_type, get_db_error
 from app.models import models
 from app.routes import (
     auth,
@@ -80,6 +80,8 @@ def health_check():
         "status": "online",
         "app": "Pakistani Gym Management System",
         "database": get_active_db_type(),
+        "supabase_connected": get_active_db_type() == "supabase",
+        "db_error": get_db_error(),
         "currency": "PKR (Rs.)",
         "date_format": "DD-MM-YYYY"
     }
