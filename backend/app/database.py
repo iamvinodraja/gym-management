@@ -21,9 +21,20 @@ if env_file.exists():
 
 DATABASE_TYPE = os.getenv("DATABASE_TYPE", "auto").lower()
 
-# Supabase / PostgreSQL Configuration
-DEFAULT_SUPABASE_URL = "postgresql://postgres:Passwardhacked123@db.hhwdtcmcotqmieigmdxx.supabase.co:5432/postgres"
-SUPABASE_DB_URL = os.getenv("SUPABASE_DB_URL") or os.getenv("DATABASE_URL") or DEFAULT_SUPABASE_URL
+# Supabase / PostgreSQL Configuration (IPv4 Pooler + Direct)
+candidate_supabase_urls = []
+if os.getenv("SUPABASE_DB_URL"):
+    candidate_supabase_urls.append(os.getenv("SUPABASE_DB_URL"))
+if os.getenv("DATABASE_URL"):
+    candidate_supabase_urls.append(os.getenv("DATABASE_URL"))
+
+candidate_supabase_urls.extend([
+    # IPv4 Poolers (Best for cloud hosts like Render)
+    "postgresql://postgres.hhwdtcmcotqmieigmdxx:Passwardhacked123@aws-0-ap-northeast-1.pooler.supabase.com:6543/postgres",
+    "postgresql://postgres.hhwdtcmcotqmieigmdxx:Passwardhacked123@aws-0-ap-northeast-1.pooler.supabase.com:5432/postgres",
+    # Direct Endpoint (IPv6)
+    "postgresql://postgres:Passwardhacked123@db.hhwdtcmcotqmieigmdxx.supabase.co:5432/postgres"
+])
 
 # MySQL Configuration
 MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
@@ -39,31 +50,36 @@ engine = None
 db_selected = "sqlite"
 last_db_error = None
 
-# 1. Try Supabase / PostgreSQL if URL provided
-if SUPABASE_DB_URL and SUPABASE_DB_URL.strip():
-    try:
-        url = SUPABASE_DB_URL.strip()
-        if url.startswith("postgres://"):
-            url = url.replace("postgres://", "postgresql+psycopg2://", 1)
-        elif url.startswith("postgresql://") and not url.startswith("postgresql+psycopg2://"):
-            url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
+# 1. Try Supabase / PostgreSQL candidates
+for raw_url in candidate_supabase_urls:
+    if not raw_url or not raw_url.strip():
+        continue
+    url = raw_url.strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif url.startswith("postgresql://") and not url.startswith("postgresql+psycopg2://"):
+        url = url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
-        # Connect with SSL requirement for Supabase
+    try:
+        # Strip query params like pgbouncer=true if present for psycopg2
+        clean_url = url.split("?")[0]
         pg_engine = create_engine(
-            url,
+            clean_url,
             pool_recycle=300,
             pool_pre_ping=True,
-            connect_args={"sslmode": "require"} if "localhost" not in url and "127.0.0.1" not in url else {}
+            connect_args={"sslmode": "require", "connect_timeout": 5} if "localhost" not in url and "127.0.0.1" not in url else {}
         )
         with pg_engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         
         engine = pg_engine
         db_selected = "supabase"
-        logger.info("Successfully connected to Supabase PostgreSQL database!")
+        last_db_error = None
+        logger.info(f"Successfully connected to Supabase PostgreSQL via {clean_url.split('@')[-1]}!")
+        break
     except Exception as e:
         last_db_error = str(e)
-        logger.warning(f"Failed to connect to Supabase PostgreSQL ({e}). Checking alternative databases...")
+        logger.warning(f"Failed to connect to Supabase endpoint ({url.split('@')[-1]}): {e}")
 
 # 2. Try MySQL if Supabase wasn't connected and DATABASE_TYPE is mysql or auto
 if engine is None and DATABASE_TYPE in ("mysql", "auto"):
