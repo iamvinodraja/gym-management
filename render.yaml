@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: pakistani-gym-management
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: ADMIN_USERNAME
+        value: healthiswealth
+      - key: ADMIN_PASSWORD
+        value: secretgym123
+      - key: SECRET_KEY
+        generateValue: true

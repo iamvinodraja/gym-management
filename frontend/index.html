@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pakistani Gym Management System | Power Fitness Gym</title>
+    <meta name="description" content="Simple, modern, and fast Gym Management System designed specifically for gyms in Pakistan with PKR currency, CNIC, and Easypaisa/JazzCash fee tracking.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/print.css">
+</head>
+<body>
+
+    <!-- Dedicated Full-Screen Login Screen -->
+    <div id="loginScreen" class="login-screen-overlay hidden">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-brand-header">
+                    <div class="login-logo-icon">
+                        <i class="fas fa-dumbbell"></i>
+                    </div>
+                    <h1 class="login-title gym-brand-name">Power Fitness Gym</h1>
+                    <p class="login-subtitle">Gym Management Portal • Pakistan</p>
+                </div>
+
+                <div id="loginErrorAlert" class="login-error-alert" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="loginErrorText">Invalid username or password.</span>
+                </div>
+
+                <form id="loginForm" onsubmit="app.handleLogin(event)">
+                    <div class="form-group" style="margin-bottom: 16px;">
+                        <label class="form-label" for="loginUsername">Username / Staff ID</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-user input-icon"></i>
+                            <input type="text" id="loginUsername" class="form-control login-input" placeholder="e.g. admin or reception" required autocomplete="username">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 22px;">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <div class="input-with-icon">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input type="password" id="loginPassword" class="form-control login-input" placeholder="Enter password" required autocomplete="current-password">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="loginSubmitBtn" class="btn btn-primary login-btn" style="width: 100%; justify-content: center; padding: 12px;">
+                        <i class="fas fa-sign-in-alt"></i> Sign In to Portal
+                    </button>
+                </form>
+
+                <div class="login-footer">
+                    <p>Secured Access • Only authorized credentials can sign in</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+        <div class="brand-section">
+            <div class="brand-logo-icon">
+                <i class="fas fa-dumbbell"></i>
+            </div>
+            <div>
+                <div class="brand-title gym-brand-name">Power Fitness Gym</div>
+                <div class="brand-subtitle">Pakistan Edition</div>
+            </div>
+        </div>
+
+        <ul class="nav-menu">
+            <li class="nav-item">
+                <a class="nav-link active" data-view="dashboard" id="navDashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="members" id="navMembers">
+                    <i class="fas fa-users"></i>
+                    <span>Members</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="attendance" id="navAttendance">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Attendance</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="memberships" id="navMemberships">
+                    <i class="fas fa-id-card"></i>
+                    <span>Plans & Packages</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="payments" id="navPayments">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <span>Fee & Payments</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="expenses" id="navExpenses">
+                    <i class="fas fa-receipt"></i>
+                    <span>Expenses</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="trainers" id="navTrainers">
+                    <i class="fas fa-user-ninja"></i>
+                    <span>Trainers & Staff</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="reports" id="navReports">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Reports</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-view="settings" id="navSettings">
+                    <i class="fas fa-cog"></i>
+                    <span>Gym Settings</span>
+                </a>
+            </li>
+        </ul>
+
+        <!-- Logged in User Display -->
+        <div class="user-profile-widget">
+            <div class="user-avatar" id="headerUserAvatar">H</div>
+            <div class="user-info">
+                <div class="user-name" id="headerUserName">Gym Owner</div>
+                <span class="user-role-badge role-admin" id="headerUserRole">ADMIN</span>
+            </div>
+        </div>
+
+        <!-- Logout Action -->
+        <div style="padding: 10px 14px; border-top: 1px solid var(--border-light);">
+            <button class="btn btn-outline btn-sm" style="width: 100%; justify-content: center; color: var(--accent-rose); border-color: rgba(244, 63, 94, 0.3);" onclick="app.logout()">
+                <i class="fas fa-sign-out-alt"></i> Sign Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Wrapper -->
+    <div class="main-wrapper">
+        
+        <!-- Top Sticky Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="sidebar-toggle-btn" id="sidebarToggleBtn" aria-label="Toggle Navigation">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="gym-quick-info">
+                    <span class="gym-active-name gym-brand-name">Power Fitness Gym</span>
+                    <span class="gym-active-location gym-brand-address">Gulberg III, Lahore</span>
+                </div>
+            </div>
+
+            <!-- Instant Global Search Bar -->
+            <div class="header-center">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="globalSearchInput" class="global-search-input" placeholder="Quick Search: Type Ali, 03001234567, or PK-1001..." autocomplete="off">
+                </div>
+                <div id="searchResultsDropdown" class="search-results-dropdown"></div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="header-right">
+                <button class="btn btn-primary" onclick="app.openAddMemberModal()" id="btnTopAddMember">
+                    <i class="fas fa-user-plus"></i> + Add Member
+                </button>
+                <button class="btn btn-cyan" onclick="app.navigateTo('attendance')" id="btnTopCheckIn">
+                    <i class="fas fa-check-circle"></i> Check In
+                </button>
+                <button class="btn btn-amber" onclick="app.openPaymentModal()" id="btnTopReceivePayment">
+                    <i class="fas fa-hand-holding-usd"></i> Receive Fee
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Dynamic Content Views -->
+        <main class="content-area">
+
+            <!-- 1. DASHBOARD VIEW -->
+            <section id="dashboardView" class="view-section active">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Reception & Owner Dashboard</h1>
+                        <p>Real-time overview of active members, today's attendance, collections, and expiring memberships.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="app.loadDashboard()">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Cards Grid (8 Cards) -->
+                <div class="kpi-grid">
+                    <div class="kpi-card emerald">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Total Members</span>
+                            <div class="kpi-icon emerald"><i class="fas fa-users"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiTotalMembers">0</div>
+                        <div class="kpi-subtext">Registered in system</div>
+                    </div>
+
+                    <div class="kpi-card emerald">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Active Members</span>
+                            <div class="kpi-icon emerald"><i class="fas fa-user-check"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiActiveMembers" style="color: var(--primary);">0</div>
+                        <div class="kpi-subtext">Valid gym pass</div>
+                    </div>
+
+                    <div class="kpi-card amber">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Expiring Soon</span>
+                            <div class="kpi-icon amber"><i class="fas fa-hourglass-half"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiExpiringSoon" style="color: var(--accent-amber);">0</div>
+                        <div class="kpi-subtext">Within next 7 days</div>
+                    </div>
+
+                    <div class="kpi-card rose">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Expired</span>
+                            <div class="kpi-icon rose"><i class="fas fa-user-times"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiExpiredMembers" style="color: var(--accent-rose);">0</div>
+                        <div class="kpi-subtext">Needs renewal</div>
+                    </div>
+
+                    <div class="kpi-card cyan">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Today's Attendance</span>
+                            <div class="kpi-icon cyan"><i class="fas fa-walking"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiTodayAttendance" style="color: var(--accent-cyan);">0</div>
+                        <div class="kpi-subtext">Check-ins today</div>
+                    </div>
+
+                    <div class="kpi-card emerald">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Today's Collections</span>
+                            <div class="kpi-icon emerald"><i class="fas fa-money-bill-wave"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiTodayCollections" style="font-size: 22px;">Rs. 0</div>
+                        <div class="kpi-subtext">Fee collected today</div>
+                    </div>
+
+                    <div class="kpi-card amber">
+                        <div class="kpi-header">
+                            <span class="kpi-label">Pending Payments</span>
+                            <div class="kpi-icon amber"><i class="fas fa-exclamation-triangle"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiPendingPayments" style="color: var(--accent-amber); font-size: 22px;">Rs. 0</div>
+                        <div class="kpi-subtext">Unpaid dues total</div>
+                    </div>
+
+                    <div class="kpi-card purple">
+                        <div class="kpi-header">
+                            <span class="kpi-label">New This Month</span>
+                            <div class="kpi-icon purple"><i class="fas fa-user-plus"></i></div>
+                        </div>
+                        <div class="kpi-value" id="kpiNewThisMonth">0</div>
+                        <div class="kpi-subtext">Joined current month</div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Tables Split (Attendance vs Expiring Soon) -->
+                <div class="dashboard-sections-grid">
+                    
+                    <!-- Today's Attendance Panel -->
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-walking" style="color: var(--accent-cyan);"></i> Today's Attendance
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="app.navigateTo('attendance')">
+                                View All
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="gym-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member ID</th>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Check-In</th>
+                                        <th>Check-Out</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardAttendanceBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Memberships Expiring Soon Panel -->
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-exclamation-circle" style="color: var(--accent-amber);"></i> Expiring Soon (Next 7 Days)
+                            </div>
+                            <span class="badge badge-expiring">Follow Up</span>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="gym-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Expiry Date</th>
+                                        <th>Days Left</th>
+                                        <th>Pending Due</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardExpiringBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Second Row (Recent Fee Collections & Recent Activity) -->
+                <div class="dashboard-sections-grid">
+
+                    <!-- Recent Payments Panel -->
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-receipt" style="color: var(--primary);"></i> Recent Fee Collections
+                            </div>
+                            <button class="btn btn-secondary btn-sm" onclick="app.navigateTo('payments')">
+                                View Payments
+                            </button>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="gym-table">
+                                <thead>
+                                    <tr>
+                                        <th>Receipt</th>
+                                        <th>Member</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Date</th>
+                                        <th>Staff</th>
+                                        <th>Slip</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dashboardPaymentsBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Feed -->
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title">
+                                <i class="fas fa-history" style="color: var(--accent-purple);"></i> Recent Activity Feed
+                            </div>
+                        </div>
+                        <div class="panel-body">
+                            <ul class="activity-list" id="dashboardActivityList">
+                                <!-- Populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- 2. MEMBERS VIEW -->
+            <section id="membersView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Member Management</h1>
+                        <p>Search, filter, view profile, edit, renew, or record member fee payments.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.openAddMemberModal()">
+                        <i class="fas fa-user-plus"></i> + Add New Member
+                    </button>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <div class="filter-group" style="flex: 1; min-width: 240px;">
+                        <input type="text" id="memberSearchInput" class="form-control" placeholder="Search by name, phone, CNIC, or ID..." oninput="app.loadMembers()" style="width: 100%;">
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label" style="margin: 0;">Status:</label>
+                        <select id="memberStatusFilter" class="form-control" onchange="app.loadMembers()">
+                            <option value="all">All Statuses</option>
+                            <option value="Active">Active</option>
+                            <option value="Expiring Soon">Expiring Soon</option>
+                            <option value="Expired">Expired</option>
+                            <option value="Inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="form-label" style="margin: 0;">Plan:</label>
+                        <select id="memberPlanFilter" class="form-control" onchange="app.loadMembers()">
+                            <option value="">All Plans</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-muted); cursor: pointer;">
+                            <input type="checkbox" id="memberDuesFilter" onchange="app.loadMembers()">
+                            Has Outstanding Dues
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Members Table -->
+                <div class="card-panel">
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Member ID</th>
+                                    <th>Name & Info</th>
+                                    <th>Phone</th>
+                                    <th>Plan</th>
+                                    <th>Expiry Date</th>
+                                    <th>Status</th>
+                                    <th>Remaining</th>
+                                    <th>Dues</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="membersTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. ATTENDANCE VIEW -->
+            <section id="attendanceView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Receptionist Attendance Management</h1>
+                        <p>Check in members, monitor gym occupancy, and check out members.</p>
+                    </div>
+                </div>
+
+                <!-- Quick Check-In Box -->
+                <div class="card-panel" style="margin-bottom: 24px; padding: 22px;">
+                    <div style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: #fff; display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-sign-in-alt" style="color: var(--primary);"></i> Rapid Front-Desk Check In
+                    </div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <select id="quickCheckInMemberSelect" class="form-control" style="flex: 1; min-width: 280px; padding: 12px;">
+                            <option value="">-- Choose Member to Check In --</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="app.submitQuickCheckInFromSelect()" style="padding: 12px 24px;">
+                            <i class="fas fa-check-circle"></i> Check In Member
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Today's Attendance Table -->
+                <div class="card-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-calendar-day" style="color: var(--accent-cyan);"></i> Today's Complete Attendance Log
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Member ID</th>
+                                    <th>Member Name</th>
+                                    <th>Phone</th>
+                                    <th>Check-In Time</th>
+                                    <th>Check-Out Time</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attendanceTodayTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 4. MEMBERSHIPS & PLANS VIEW -->
+            <section id="membershipsView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Membership Plans & Packages</h1>
+                        <p>Configure gym plans, durations in days, and prices in Pakistani Rupees (PKR).</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.openAddPlanModal()">
+                        <i class="fas fa-plus-circle"></i> + Create New Plan
+                    </button>
+                </div>
+
+                <div class="plans-grid" id="plansGridContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </section>
+
+            <!-- 5. PAYMENTS VIEW -->
+            <section id="paymentsView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Fee & Payment Management</h1>
+                        <p>Record partial or full fee collections, track outstanding balances, and issue slips.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.openPaymentModal()">
+                        <i class="fas fa-hand-holding-usd"></i> + Receive Fee Payment
+                    </button>
+                </div>
+
+                <!-- KPI Summary Row -->
+                <div class="kpi-grid" style="margin-bottom: 22px;">
+                    <div class="kpi-card emerald">
+                        <div class="kpi-label">Today Collected</div>
+                        <div class="kpi-value" id="paySummaryToday">Rs. 0</div>
+                        <div class="kpi-subtext">Cash, Bank, Easypaisa, JazzCash</div>
+                    </div>
+                    <div class="kpi-card cyan">
+                        <div class="kpi-label">This Month Collected</div>
+                        <div class="kpi-value" id="paySummaryMonth">Rs. 0</div>
+                        <div class="kpi-subtext">Total month income</div>
+                    </div>
+                    <div class="kpi-card amber">
+                        <div class="kpi-label">Total Outstanding Dues</div>
+                        <div class="kpi-value" id="paySummaryDues" style="color: var(--accent-amber);">Rs. 0</div>
+                        <div class="kpi-subtext">Pending across all members</div>
+                    </div>
+                </div>
+
+                <!-- Payment History Table -->
+                <div class="card-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-history"></i> Fee Transactions History
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Receipt No.</th>
+                                    <th>Member</th>
+                                    <th>Amount (PKR)</th>
+                                    <th>Payment Method</th>
+                                    <th>Date</th>
+                                    <th>Received By</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. EXPENSES VIEW -->
+            <section id="expensesView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Gym Expense Management</h1>
+                        <p>Track electricity, generator fuel, rent, cleaning, staff salaries, and gym maintenance.</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.openAddExpenseModal()">
+                        <i class="fas fa-plus-circle"></i> + Add Expense
+                    </button>
+                </div>
+
+                <!-- Summary Row -->
+                <div class="kpi-grid" style="margin-bottom: 22px;">
+                    <div class="kpi-card rose">
+                        <div class="kpi-label">Today's Expenses</div>
+                        <div class="kpi-value" id="expSummaryToday" style="color: var(--accent-rose);">Rs. 0</div>
+                    </div>
+                    <div class="kpi-card amber">
+                        <div class="kpi-label">This Month's Expenses</div>
+                        <div class="kpi-value" id="expSummaryMonth">Rs. 0</div>
+                    </div>
+                    <div class="kpi-card purple">
+                        <div class="kpi-label">Total Gym Expenses</div>
+                        <div class="kpi-value" id="expSummaryTotal">Rs. 0</div>
+                    </div>
+                </div>
+
+                <!-- Expense Table -->
+                <div class="card-panel">
+                    <div class="panel-header">
+                        <div class="panel-title">
+                            <i class="fas fa-list"></i> Expense Logs
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Category</th>
+                                    <th>Amount (PKR)</th>
+                                    <th>Description</th>
+                                    <th>Paid By</th>
+                                </tr>
+                            </thead>
+                            <tbody id="expensesTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 7. TRAINERS & STAFF VIEW -->
+            <section id="trainersView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Trainers & Gym Staff</h1>
+                        <p>Manage gym trainers, front desk receptionists, managers, and staff members.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-primary" onclick="app.openAddStaffModal()">
+                            <i class="fas fa-user-plus"></i> + Add Staff Member
+                        </button>
+                    </div>
+                </div>
+
+                <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #fff;">
+                    <i class="fas fa-dumbbell" style="color: var(--primary);"></i> Gym Fitness Trainers
+                </h2>
+                <div class="plans-grid" id="trainersGridContainer" style="margin-bottom: 28px;">
+                    <!-- Populated dynamically -->
+                </div>
+
+                <h2 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: #fff;">
+                    <i class="fas fa-id-badge" style="color: var(--accent-cyan);"></i> Gym Staff Directory
+                </h2>
+                <div class="card-panel">
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Staff ID</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>CNIC</th>
+                                    <th>Role</th>
+                                    <th>Salary</th>
+                                    <th>Joining Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="staffTableBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 8. REPORTS VIEW -->
+            <section id="reportsView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Financial & Gym Reports</h1>
+                        <p>Summary of gym income, expenses, membership status, and most active members.</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="reportTimeframeSelect" class="form-control" onchange="app.loadReportsView(this.value)">
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month" selected>This Month</option>
+                        </select>
+                        <button class="btn btn-secondary" onclick="app.printReport()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Financial KPI Cards -->
+                <div class="kpi-grid" style="margin-bottom: 24px;">
+                    <div class="kpi-card emerald">
+                        <div class="kpi-label">Total Fee Income</div>
+                        <div class="kpi-value" id="repIncome" style="color: var(--primary);">Rs. 0</div>
+                        <div class="kpi-subtext">Fees collected</div>
+                    </div>
+                    <div class="kpi-card rose">
+                        <div class="kpi-label">Total Expenses</div>
+                        <div class="kpi-value" id="repExpenses" style="color: var(--accent-rose);">Rs. 0</div>
+                        <div class="kpi-subtext">Electricity, rent, salaries</div>
+                    </div>
+                    <div class="kpi-card cyan">
+                        <div class="kpi-label">Net Profit / Margin</div>
+                        <div class="kpi-value" id="repNetProfit" style="color: var(--accent-cyan);">Rs. 0</div>
+                        <div class="kpi-subtext">Income minus expenses</div>
+                    </div>
+                    <div class="kpi-card amber">
+                        <div class="kpi-label">Receivable Dues</div>
+                        <div class="kpi-value" id="repOutstanding" style="color: var(--accent-amber);">Rs. 0</div>
+                        <div class="kpi-subtext">To be recovered</div>
+                    </div>
+                </div>
+
+                <!-- Breakdown Panels -->
+                <div class="dashboard-sections-grid">
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title"><i class="fas fa-money-check-alt"></i> Income by Payment Method</div>
+                        </div>
+                        <div class="panel-body" id="repIncomeMethodsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="card-panel">
+                        <div class="panel-header">
+                            <div class="panel-title"><i class="fas fa-tags"></i> Expenses by Category</div>
+                        </div>
+                        <div class="panel-body" id="repExpenseCatsList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Attendance Leaderboard -->
+                <div class="card-panel" style="margin-top: 24px;">
+                    <div class="panel-header">
+                        <div class="panel-title"><i class="fas fa-trophy" style="color: var(--accent-amber);"></i> Most Active Gym Members (This Month Leaderboard)</div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Member Name</th>
+                                    <th>Phone</th>
+                                    <th>Plan</th>
+                                    <th>Check-in Frequency</th>
+                                </tr>
+                            </thead>
+                            <tbody id="repAttendanceLeaderboardBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 9. SETTINGS VIEW -->
+            <section id="settingsView" class="view-section">
+                <div class="page-header">
+                    <div class="page-title-group">
+                        <h1>Gym Configuration & Branding</h1>
+                        <p>Customize your gym name, Pakistani address, phone, fee defaults, and receipt policy note.</p>
+                    </div>
+                </div>
+
+                <div class="card-panel" style="max-width: 750px;">
+                    <div class="panel-body">
+                        <form id="settingsForm" onsubmit="app.submitSettingsForm(event)">
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label class="form-label">Gym Name</label>
+                                    <input type="text" id="setGymName" class="form-control" required placeholder="e.g. Power Fitness Gym">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label">Gym Address</label>
+                                    <input type="text" id="setGymAddress" class="form-control" placeholder="e.g. Plot 14-C, Gulberg III, Lahore, Pakistan">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Phone Number (Pakistani Format)</label>
+                                    <input type="text" id="setGymPhone" class="form-control" placeholder="0300-1234567">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Currency Symbol</label>
+                                    <input type="text" id="setCurrencySymbol" class="form-control" value="Rs.">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Default Monthly Fee (PKR)</label>
+                                    <input type="number" id="setDefaultFee" class="form-control" value="2500">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Expiry Warning Alert (Days)</label>
+                                    <input type="number" id="setWarningDays" class="form-control" value="7">
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label">Receipt Footer Notice</label>
+                                    <textarea id="setReceiptFooter" class="form-control" rows="3"></textarea>
+                                </div>
+                            </div>
+                            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Save Settings
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- =========================================================
+         MODALS
+         ========================================================= -->
+
+    <!-- 1. Add Member Modal -->
+    <div class="modal-overlay" id="addMemberModal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-user-plus" style="color: var(--primary);"></i> Register New Member</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addMemberForm" onsubmit="app.submitAddMember(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" id="newMemberName" class="form-control" required placeholder="e.g. Ali Raza Khan">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Father / Husband Name</label>
+                            <input type="text" id="newMemberFather" class="form-control" placeholder="e.g. Tariq Khan">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number * (03xx-xxxxxxx)</label>
+                            <input type="text" id="newMemberPhone" class="form-control" required placeholder="0300-1234567">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CNIC (Optional)</label>
+                            <input type="text" id="newMemberCnic" class="form-control" placeholder="35201-1234567-1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Emergency Contact</label>
+                            <input type="text" id="newMemberEmergency" class="form-control" placeholder="0321-9876543">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Gender</label>
+                            <select id="newMemberGender" class="form-control">
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Join Date</label>
+                            <input type="date" id="newMemberJoinDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Membership Plan *</label>
+                            <select id="newMemberPlan" class="form-control" onchange="app.onAddMemberPlanChange()">
+                                <option value="">-- Select Plan --</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" id="newMemberStartDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plan Fee (PKR)</label>
+                            <input type="number" id="newMemberFee" class="form-control" placeholder="2500">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Discount (Optional)</label>
+                            <input type="number" id="newMemberDiscount" class="form-control" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount Paid Now (PKR)</label>
+                            <input type="number" id="newMemberPaid" class="form-control" placeholder="Amount paid at counter">
+                            <span class="form-hint">Supports partial payments</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Method</label>
+                            <select id="newMemberPayMethod" class="form-control">
+                                <option value="Cash">Cash</option>
+                                <option value="Easypaisa">Easypaisa</option>
+                                <option value="JazzCash">JazzCash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Assign Trainer (Optional)</label>
+                            <select id="newMemberTrainer" class="form-control">
+                                <option value="">-- None --</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Residential Address (Optional)</label>
+                            <input type="text" id="newMemberAddress" class="form-control" placeholder="Street / Area, City">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Medical / Reception Notes (Optional)</label>
+                            <input type="text" id="newMemberNotes" class="form-control" placeholder="Any medical conditions or locker number">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Register & Issue Pass</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Member Profile Modal -->
+    <div class="modal-overlay" id="memberProfileModal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="user-avatar" style="width: 44px; height: 44px; font-size: 18px;">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h2 style="font-size: 18px; font-weight: 800; color: #fff;" id="profName">Member Name</h2>
+                            <span class="member-code-badge" id="profMemberId">PK-1001</span>
+                            <span id="profStatus" class="badge badge-active">Active</span>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                            <a id="profPhoneLink" href="#" style="color: var(--primary); text-decoration: none;"><i class="fas fa-phone"></i> <span id="profPhone">0300-1234567</span></a>
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <a id="profWhatsAppBtn" href="#" target="_blank" class="btn btn-whatsapp btn-sm" title="WhatsApp Member">
+                        <i class="fab fa-whatsapp"></i> WhatsApp
+                    </a>
+                    <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+                </div>
+            </div>
+
+            <div class="modal-body">
+                <!-- Profile Tabs -->
+                <div class="profile-tabs">
+                    <button class="profile-tab-btn active" data-tab="overview" onclick="app.switchProfileTab('overview')">
+                        <i class="fas fa-user"></i> Overview
+                    </button>
+                    <button class="profile-tab-btn" data-tab="payments" onclick="app.switchProfileTab('payments')">
+                        <i class="fas fa-receipt"></i> Payment History
+                    </button>
+                    <button class="profile-tab-btn" data-tab="attendance" onclick="app.switchProfileTab('attendance')">
+                        <i class="fas fa-calendar-check"></i> Attendance
+                    </button>
+                    <button class="profile-tab-btn" data-tab="renewals" onclick="app.switchProfileTab('renewals')">
+                        <i class="fas fa-history"></i> Renewals
+                    </button>
+                </div>
+
+                <!-- Tab 1: Overview -->
+                <div class="tab-pane active" id="tab-overview">
+                    <div class="info-display-grid">
+                        <div class="info-item"><label>Current Plan</label><p id="profPlanName">-</p></div>
+                        <div class="info-item"><label>Valid Expiry</label><p id="profExpiryDate" style="color: var(--accent-amber);">-</p></div>
+                        <div class="info-item"><label>Remaining Days</label><p id="profRemainingDays">-</p></div>
+                        <div class="info-item"><label>Outstanding Due</label><p id="profOutstanding" style="color: var(--accent-rose);">-</p></div>
+                        <div class="info-item"><label>Father / Husband Name</label><p id="profFatherName">-</p></div>
+                        <div class="info-item"><label>CNIC</label><p id="profCnic">-</p></div>
+                        <div class="info-item"><label>Gender</label><p id="profGender">-</p></div>
+                        <div class="info-item"><label>Emergency Contact</label><p id="profEmergency">-</p></div>
+                        <div class="info-item"><label>Join Date</label><p id="profJoinDate">-</p></div>
+                        <div class="info-item"><label>Assigned Trainer</label><p id="profTrainer">-</p></div>
+                        <div class="info-item" style="grid-column: span 2;"><label>Address</label><p id="profAddress">-</p></div>
+                        <div class="info-item" style="grid-column: span 2;"><label>Notes</label><p id="profNotes">-</p></div>
+                    </div>
+
+                    <!-- Quick Actions Inside Profile -->
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 12px;">
+                        <button class="btn btn-cyan btn-sm" onclick="app.quickCheckIn(document.getElementById('memberProfileModal').dataset.memberId)">
+                            <i class="fas fa-sign-in-alt"></i> Check In Now
+                        </button>
+                        <button class="btn btn-amber btn-sm" onclick="app.openPaymentModal(document.getElementById('memberProfileModal').dataset.memberId)">
+                            <i class="fas fa-money-bill-wave"></i> Receive Payment
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="app.openRenewModal(document.getElementById('memberProfileModal').dataset.memberId)">
+                            <i class="fas fa-sync-alt"></i> Renew Membership
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Payments History -->
+                <div class="tab-pane" id="tab-payments">
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Receipt No</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Date</th>
+                                    <th>Note</th>
+                                    <th>Slip</th>
+                                </tr>
+                            </thead>
+                            <tbody id="profPaymentsBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Attendance History -->
+                <div class="tab-pane" id="tab-attendance">
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Check-In</th>
+                                    <th>Check-Out</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="profAttendanceBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Renewals History -->
+                <div class="tab-pane" id="tab-renewals">
+                    <div class="table-responsive">
+                        <table class="gym-table">
+                            <thead>
+                                <tr>
+                                    <th>Plan Name</th>
+                                    <th>Period</th>
+                                    <th>Fee</th>
+                                    <th>Paid</th>
+                                    <th>Remaining Balance</th>
+                                </tr>
+                            </thead>
+                            <tbody id="profMembershipsBody">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Renew Membership Modal -->
+    <div class="modal-overlay" id="renewMembershipModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-sync-alt" style="color: var(--primary);"></i> Renew Membership</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="renewMembershipForm" onsubmit="app.submitRenewal(event)">
+                    <input type="hidden" id="renewMemberIdVal">
+                    
+                    <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                        <div style="font-size: 14px; font-weight: 700; color: #fff;" id="renewMemberNameDisplay">Ali Raza Khan</div>
+                        <div style="font-size: 12px; color: var(--text-muted);">Current Expiry: <span id="renewCurrentExpiryDisplay" style="color: var(--accent-amber); font-weight: bold;">12-09-2026</span></div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Select Renewal Plan</label>
+                            <select id="renewPlanSelect" class="form-control" onchange="app.onRenewPlanChange()" required></select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Plan Fee (PKR)</label>
+                            <input type="number" id="renewFeeInput" class="form-control" oninput="app.calculateRenewBalance()" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Discount (Optional)</label>
+                            <input type="number" id="renewDiscountInput" class="form-control" value="0" oninput="app.calculateRenewBalance()">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount Paid Now (PKR)</label>
+                            <input type="number" id="renewPaidInput" class="form-control" oninput="app.calculateRenewBalance()" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Method</label>
+                            <select id="renewPayMethod" class="form-control">
+                                <option value="Cash">Cash</option>
+                                <option value="Easypaisa">Easypaisa</option>
+                                <option value="JazzCash">JazzCash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group full-width">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer;">
+                                <input type="checkbox" id="renewFromExpiry" checked>
+                                Extend from current expiry date (if membership is still active)
+                            </label>
+                        </div>
+                        <div class="form-group full-width">
+                            <div style="display: flex; justify-content: space-between; background: var(--bg-surface); padding: 12px 16px; border-radius: var(--radius-md);">
+                                <span style="font-weight: 600;">Remaining Balance:</span>
+                                <span id="renewRemainingBalanceDisplay" style="font-weight: 800; color: var(--primary);">Rs. 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Complete Renewal</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Record Payment Modal -->
+    <div class="modal-overlay" id="recordPaymentModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-hand-holding-usd" style="color: var(--accent-amber);"></i> Record Fee Payment</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="recordPaymentForm" onsubmit="app.submitRecordPayment(event)">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Member *</label>
+                            <select id="paymentMemberSelect" class="form-control" onchange="app.onPaymentMemberChange()" required></select>
+                        </div>
+                        <div class="form-group full-width">
+                            <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.2); padding: 10px 14px; border-radius: var(--radius-md);">
+                                <span style="font-size: 12px; color: var(--text-muted);">Current Outstanding Due:</span>
+                                <span id="paymentMemberDuesDisplay" style="font-weight: 800; color: var(--accent-rose);">Rs. 0</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount Paid (PKR) *</label>
+                            <input type="number" id="paymentAmountInput" class="form-control" required placeholder="Amount received">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Discount Concession</label>
+                            <input type="number" id="paymentDiscountInput" class="form-control" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Method</label>
+                            <select id="paymentMethodSelect" class="form-control">
+                                <option value="Cash">Cash</option>
+                                <option value="Easypaisa">Easypaisa</option>
+                                <option value="JazzCash">JazzCash</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Payment Date</label>
+                            <input type="date" id="paymentDateInput" class="form-control">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Description / Note</label>
+                            <input type="text" id="paymentDescInput" class="form-control" placeholder="e.g. Monthly Fee September 2026">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Save & Generate Receipt</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Printable Receipt Modal (Thermal / Voucher Slip) -->
+    <div class="modal-overlay" id="receiptModal">
+        <div class="modal-content" style="max-width: 440px; background: #161f30;">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-receipt" style="color: var(--primary);"></i> Payment Receipt Slip</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body" style="background: #0f1624; padding: 20px; display: flex; justify-content: center;">
+                <div id="receiptContentContainer">
+                    <!-- Thermal paper template injected here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary modal-close">Close</button>
+                <button type="button" class="btn btn-primary" onclick="app.printCurrentReceipt()">
+                    <i class="fas fa-print"></i> Print Receipt Slip
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Create / Edit Plan Modal -->
+    <div class="modal-overlay" id="planModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="planModalTitle">Create Membership Plan</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="planForm" onsubmit="app.submitPlanForm(event)">
+                    <input type="hidden" id="planEditId">
+                    <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Plan Name *</label>
+                            <input type="text" id="planNameInput" class="form-control" required placeholder="e.g. Monthly Regular, 3 Months Saver">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duration (Days) *</label>
+                            <input type="number" id="planDurationInput" class="form-control" required placeholder="e.g. 30, 90, 180, 365">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Price (PKR) *</label>
+                            <input type="number" id="planPriceInput" class="form-control" required placeholder="e.g. 2500">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Description</label>
+                            <textarea id="planDescInput" class="form-control" rows="2" placeholder="Brief perks or package inclusions"></textarea>
+                        </div>
+                        <div class="form-group full-width">
+                            <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); cursor: pointer;">
+                                <input type="checkbox" id="planActiveCheck" checked>
+                                Plan is Active and Available for Members
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Plan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Add Expense Modal -->
+    <div class="modal-overlay" id="addExpenseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title"><i class="fas fa-plus-circle" style="color: var(--accent-rose);"></i> Record Gym Expense</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addExpenseForm" onsubmit="app.submitAddExpense(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Expense Category *</label>
+                            <select id="expenseCategorySelect" class="form-control" required>
+                                <option value="Electricity">Electricity (LESCO / K-Electric)</option>
+                                <option value="Generator / Fuel">Generator / Diesel Fuel</option>
+                                <option value="Staff Salary">Staff Salary / Trainer Advance</option>
+                                <option value="Rent">Gym Premises Rent</option>
+                                <option value="Equipment">Gym Equipment & Weights</option>
+                                <option value="Cleaning">Cleaning & Washroom Supplies</option>
+                                <option value="Maintenance">Machine Repair & Cables</option>
+                                <option value="Water">Drinking Water Delivery</option>
+                                <option value="Other">Other Expenses</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Amount (PKR) *</label>
+                            <input type="number" id="expenseAmountInput" class="form-control" required placeholder="e.g. 15000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Date</label>
+                            <input type="date" id="expenseDateInput" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Paid By</label>
+                            <input type="text" id="expensePaidByInput" class="form-control" placeholder="Malik Tariq">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Description</label>
+                            <input type="text" id="expenseDescInput" class="form-control" placeholder="Invoice details, shop name, or receipt remarks">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Expense</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. Add Staff Modal -->
+    <div class="modal-overlay" id="staffModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">Add Staff Member</div>
+                <button class="modal-close-btn" aria-label="Close Modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="staffForm" onsubmit="app.submitStaffForm(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Staff ID *</label>
+                            <input type="text" id="staffIdInput" class="form-control" required placeholder="e.g. STF-05">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Full Name *</label>
+                            <input type="text" id="staffNameInput" class="form-control" required placeholder="e.g. Asad Ali">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Phone Number *</label>
+                            <input type="text" id="staffPhoneInput" class="form-control" required placeholder="0300-1122334">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CNIC</label>
+                            <input type="text" id="staffCnicInput" class="form-control" placeholder="35201-1234567-1">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Staff Role *</label>
+                            <select id="staffRoleSelect" class="form-control" required>
+                                <option value="Receptionist">Receptionist</option>
+                                <option value="Trainer">Trainer</option>
+                                <option value="Manager">Manager</option>
+                                <option value="Owner">Owner</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Monthly Salary (PKR)</label>
+                            <input type="number" id="staffSalaryInput" class="form-control" placeholder="35000">
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Joining Date</label>
+                            <input type="date" id="staffJoinDateInput" class="form-control">
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="padding: 16px 0 0 0; margin-top: 16px;">
+                        <button type="button" class="btn btn-secondary modal-close">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Add Staff</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Toast Floating Notifications Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Scripts -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/views.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

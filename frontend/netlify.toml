@@ -1,0 +1,17 @@
+# Netlify Configuration for Pakistani Gym Management System
+
+[build]
+  publish = "."
+
+# API Proxy rule (Change YOUR-BACKEND-URL to your live backend domain, e.g. on Render)
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR-BACKEND-URL.onrender.com/api/:splat"
+  status = 200
+  force = true
+
+# Single Page App routing
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
