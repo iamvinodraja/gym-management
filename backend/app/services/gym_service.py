@@ -35,24 +35,46 @@ def format_currency_pk(amount: float, symbol: str = "Rs.") -> str:
         return f"{symbol} {amount}"
 
 def generate_member_id(db: Session) -> str:
-    """Generates sequential ID like PK-1001, PK-1002"""
-    latest = db.query(Member).order_by(Member.id.desc()).first()
-    if not latest:
-        return "PK-1001"
+    """Generates unique sequential ID like PK-1009 without collision risk"""
+    members = db.query(Member.member_id).all()
+    max_num = 1000
+    for (mid,) in members:
+        if mid:
+            match = re.search(r"(\d+)$", mid)
+            if match:
+                try:
+                    max_num = max(max_num, int(match.group(1)))
+                except ValueError:
+                    pass
     
-    # Try to extract trailing number
-    match = re.search(r"(\d+)$", latest.member_id)
-    if match:
-        next_num = int(match.group(1)) + 1
-        return f"PK-{next_num}"
-    else:
-        return f"PK-{1000 + latest.id + 1}"
+    next_num = max_num + 1
+    while True:
+        candidate = f"PK-{next_num}"
+        exists = db.query(Member).filter(Member.member_id == candidate).first()
+        if not exists:
+            return candidate
+        next_num += 1
 
 def generate_payment_id(db: Session) -> str:
-    """Generates sequential ID like REC-2026-0001"""
+    """Generates unique sequential ID like REC-2026-0010 without collision risk"""
     year = datetime.date.today().year
-    count = db.query(func.count(Payment.id)).scalar() or 0
-    return f"REC-{year}-{count + 1:04d}"
+    prefix = f"REC-{year}-"
+    
+    payments = db.query(Payment.payment_id).filter(Payment.payment_id.like(f"{prefix}%")).all()
+    max_num = 0
+    for (pid,) in payments:
+        if pid and pid.startswith(prefix):
+            suffix = pid[len(prefix):]
+            if suffix.isdigit():
+                max_num = max(max_num, int(suffix))
+    
+    next_num = max_num + 1
+    while True:
+        candidate = f"{prefix}{next_num:04d}"
+        exists = db.query(Payment).filter(Payment.payment_id == candidate).first()
+        if not exists:
+            return candidate
+        next_num += 1
 
 def calculate_member_status(expiry_date: Optional[datetime.date], warning_days: int = 7) -> Tuple[str, int]:
     """
@@ -81,9 +103,8 @@ def log_activity(db: Session, action: str, description: str, performed_by: str =
             timestamp=datetime.datetime.now()
         )
         db.add(log)
-        db.commit()
     except Exception as e:
-        db.rollback()
+        pass
 
 def get_gym_setting(db: Session, key: str, default: str = "") -> str:
     setting = db.query(GymSetting).filter(GymSetting.key_name == key).first()

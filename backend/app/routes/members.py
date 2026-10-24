@@ -261,100 +261,104 @@ def get_member_profile(member_id: int, db: Session = Depends(get_db)):
 
 @router.post("")
 def add_member(data: MemberCreate, db: Session = Depends(get_db)):
-    # Auto-generate Member ID
-    gen_id = generate_member_id(db)
+    try:
+        # Auto-generate Member ID (guaranteed collision-free)
+        gen_id = generate_member_id(db)
 
-    # Check phone or ID collisions if any
-    join_d = data.join_date or datetime.date.today()
-    start_d = data.start_date or join_d
+        # Dates setup
+        join_d = data.join_date or datetime.date.today()
+        start_d = data.start_date or join_d
 
-    plan = None
-    expiry_d = None
-    if data.current_plan_id:
-        plan = db.query(MembershipPlan).filter(MembershipPlan.id == data.current_plan_id).first()
-        if plan:
-            # calculate expiry
-            expiry_d = start_d + datetime.timedelta(days=plan.duration_days)
+        plan = None
+        expiry_d = None
+        if data.current_plan_id:
+            plan = db.query(MembershipPlan).filter(MembershipPlan.id == data.current_plan_id).first()
+            if plan:
+                expiry_d = start_d + datetime.timedelta(days=plan.duration_days)
 
-    # Financial calculations
-    fee = data.monthly_fee if data.monthly_fee and data.monthly_fee > 0 else (plan.price if plan else 0.0)
-    discount = data.discount or 0.0
-    payable = max(0.0, fee - discount)
-    amount_paid = data.amount_paid or 0.0
-    outstanding = max(0.0, payable - amount_paid)
+        # Financial calculations
+        fee = data.monthly_fee if (data.monthly_fee is not None and data.monthly_fee > 0) else (plan.price if plan else 0.0)
+        discount = data.discount or 0.0
+        payable = max(0.0, fee - discount)
+        amount_paid = data.amount_paid or 0.0
+        outstanding = max(0.0, payable - amount_paid)
 
-    warning_days_setting = db.query(GymSetting).filter(GymSetting.key_name == "warning_days").first()
-    warning_days = int(warning_days_setting.key_value) if warning_days_setting else 7
-    status, _ = calculate_member_status(expiry_d, warning_days)
+        warning_days_setting = db.query(GymSetting).filter(GymSetting.key_name == "warning_days").first()
+        warning_days = int(warning_days_setting.key_value) if warning_days_setting else 7
+        status, _ = calculate_member_status(expiry_d, warning_days)
 
-    new_member = Member(
-        member_id=gen_id,
-        full_name=data.full_name.strip(),
-        father_name=data.father_name.strip() if data.father_name else None,
-        cnic=data.cnic.strip() if data.cnic else None,
-        phone=data.phone.strip(),
-        emergency_contact=data.emergency_contact.strip() if data.emergency_contact else None,
-        gender=data.gender or "Male",
-        dob=data.dob,
-        address=data.address.strip() if data.address else None,
-        join_date=join_d,
-        photo_url=data.photo_url,
-        notes=data.notes,
-        trainer_id=data.trainer_id,
-        current_plan_id=data.current_plan_id,
-        start_date=start_d,
-        expiry_date=expiry_d,
-        monthly_fee=fee,
-        discount=discount,
-        outstanding_amount=outstanding,
-        status=status
-    )
-    db.add(new_member)
-    db.flush()
-
-    # Record initial membership period in history
-    if plan and expiry_d:
-        history_entry = Membership(
-            member_id=new_member.id,
-            plan_id=plan.id,
+        new_member = Member(
+            member_id=gen_id,
+            full_name=data.full_name.strip()[:100],
+            father_name=data.father_name.strip()[:100] if data.father_name else None,
+            cnic=data.cnic.strip()[:20] if data.cnic else None,
+            phone=data.phone.strip()[:20],
+            emergency_contact=data.emergency_contact.strip()[:20] if data.emergency_contact else None,
+            gender=data.gender or "Male",
+            dob=data.dob,
+            address=data.address.strip() if data.address else None,
+            join_date=join_d,
+            photo_url=data.photo_url,
+            notes=data.notes,
+            trainer_id=data.trainer_id,
+            current_plan_id=data.current_plan_id,
             start_date=start_d,
-            end_date=expiry_d,
-            fee=fee,
+            expiry_date=expiry_d,
+            monthly_fee=fee,
             discount=discount,
-            amount_paid=amount_paid,
-            remaining_balance=outstanding,
-            notes="Initial Registration Membership"
+            outstanding_amount=outstanding,
+            status=status
         )
-        db.add(history_entry)
+        db.add(new_member)
+        db.flush()
 
-    # If initial payment made, create payment record
-    receipt_id = None
-    if amount_paid > 0:
-        pay_id = generate_payment_id(db)
-        receipt_id = pay_id
-        payment_record = Payment(
-            payment_id=pay_id,
-            member_id=new_member.id,
-            amount=amount_paid,
-            discount=discount,
-            payment_date=join_d,
-            payment_method=data.payment_method or "Cash",
-            description=f"Registration & Plan fee ({plan.name if plan else 'Custom'})",
-            received_by="Reception"
-        )
-        db.add(payment_record)
+        # Record initial membership period in history
+        if plan and expiry_d:
+            history_entry = Membership(
+                member_id=new_member.id,
+                plan_id=plan.id,
+                start_date=start_d,
+                end_date=expiry_d,
+                fee=fee,
+                discount=discount,
+                amount_paid=amount_paid,
+                remaining_balance=outstanding,
+                notes="Initial Registration Membership"
+            )
+            db.add(history_entry)
 
-    log_activity(db, "Member Registered", f"New member registered: {new_member.full_name} ({new_member.member_id})")
-    db.commit()
-    db.refresh(new_member)
+        # If initial payment made, create payment record
+        receipt_id = None
+        if amount_paid > 0:
+            pay_id = generate_payment_id(db)
+            payment_record = Payment(
+                payment_id=pay_id,
+                member_id=new_member.id,
+                amount=amount_paid,
+                discount=discount,
+                payment_date=join_d,
+                payment_method=data.payment_method or "Cash",
+                description=f"Registration & Plan fee ({plan.name if plan else 'Custom'})",
+                received_by="Reception"
+            )
+            db.add(payment_record)
+            db.flush()
+            receipt_id = payment_record.id
 
-    return {
-        "success": True,
-        "message": f"Member {new_member.full_name} added successfully with ID {new_member.member_id}",
-        "member_id": new_member.id,
-        "member_code": new_member.member_id,
-        "receipt_id": receipt_id
-    }
+        log_activity(db, "Member Registered", f"New member registered: {new_member.full_name} ({new_member.member_id})")
+        db.commit()
+        db.refresh(new_member)
+
+        return {
+            "success": True,
+            "message": f"Member {new_member.full_name} added successfully with ID {new_member.member_id}",
+            "member_id": new_member.id,
+            "member_code": new_member.member_id,
+            "receipt_id": receipt_id
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to add member: {str(e)}")
 
 @router.put("/{member_id}")
 def update_member(member_id: int, data: MemberUpdate, db: Session = Depends(get_db)):
