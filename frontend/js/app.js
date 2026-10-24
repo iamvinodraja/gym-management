@@ -563,34 +563,45 @@ const app = {
             const modal = document.getElementById('memberProfileModal');
             if (!modal) return;
 
+            const setElText = (id, val) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = val !== undefined && val !== null && val !== '' ? val : '-';
+            };
+
             // Populate Overview Header
-            document.getElementById('profName').textContent = m.full_name;
-            document.getElementById('profMemberId').textContent = m.member_id;
-            document.getElementById('profPhone').textContent = m.phone;
-            document.getElementById('profPhoneLink').href = `tel:${m.phone}`;
-            document.getElementById('profStatus').textContent = m.status;
-            document.getElementById('profStatus').className = `badge badge-${m.status === 'Active' ? 'active' : (m.status === 'Expiring Soon' ? 'expiring' : 'expired')}`;
+            setElText('profName', m.full_name);
+            setElText('profMemberId', m.member_id);
+            setElText('profPhone', m.phone);
+            
+            const phoneLink = document.getElementById('profPhoneLink');
+            if (phoneLink) phoneLink.href = `tel:${m.phone}`;
+
+            const statusEl = document.getElementById('profStatus');
+            if (statusEl) {
+                statusEl.textContent = m.status;
+                statusEl.className = `badge badge-${m.status === 'Active' ? 'active' : (m.status === 'Expiring Soon' ? 'expiring' : 'expired')}`;
+            }
 
             // Store current viewing member ID on modal for action buttons
             modal.dataset.memberId = m.id;
 
             // Tab 1: Personal Info
-            document.getElementById('profFatherName').textContent = m.father_name || '-';
-            document.getElementById('profCnic').textContent = m.cnic || '-';
-            document.getElementById('profEmergency').textContent = m.emergency_contact || '-';
-            document.getElementById('profGender').textContent = m.gender || 'Male';
-            document.getElementById('profAddress').textContent = m.address || '-';
-            document.getElementById('profJoinDate').textContent = m.join_date;
-            document.getElementById('profTrainer').textContent = m.trainer_name || 'None';
-            document.getElementById('profNotes').textContent = m.notes || 'None';
+            setElText('profFatherName', m.father_name);
+            setElText('profCnic', m.cnic);
+            setElText('profEmergency', m.emergency_contact);
+            setElText('profGender', m.gender || 'Male');
+            setElText('profAddress', m.address);
+            setElText('profJoinDate', m.join_date);
+            setElText('profTrainer', m.trainer_name || 'None');
+            setElText('profNotes', m.notes || 'None');
 
             // Tab 2: Membership & Balance
-            document.getElementById('profPlanName').textContent = m.plan_name;
-            document.getElementById('profStartDate').textContent = m.start_date || '-';
-            document.getElementById('profExpiryDate').textContent = m.expiry_date || '-';
-            document.getElementById('profRemainingDays').textContent = `${m.remaining_days} days`;
-            document.getElementById('profPlanFee').textContent = m.monthly_fee_formatted;
-            document.getElementById('profOutstanding').textContent = m.outstanding_formatted;
+            setElText('profPlanName', m.plan_name);
+            setElText('profStartDate', m.start_date);
+            setElText('profExpiryDate', m.expiry_date);
+            setElText('profRemainingDays', `${m.remaining_days} days`);
+            setElText('profPlanFee', m.monthly_fee_formatted);
+            setElText('profOutstanding', m.outstanding_formatted);
 
             // WhatsApp link in profile
             const cleanPhone = (m.phone || '').replace(/[^0-9]/g, '');
@@ -1100,6 +1111,7 @@ const app = {
         try {
             const trainers = await api.getTrainers();
             const staff = await api.getStaff();
+            this.cachedStaff = staff || [];
 
             const trainerContainer = document.getElementById('trainersGridContainer');
             if (trainerContainer) {
@@ -1108,7 +1120,7 @@ const app = {
 
             const staffTbody = document.getElementById('staffTableBody');
             if (staffTbody) {
-                staffTbody.innerHTML = staff.map(s => views.renderStaffRow(s)).join('');
+                staffTbody.innerHTML = (staff || []).map(s => views.renderStaffRow(s)).join('');
             }
         } catch (err) {
             console.error('Error loading trainers & staff:', err);
@@ -1117,12 +1129,91 @@ const app = {
 
     openAddStaffModal() {
         document.getElementById('staffForm').reset();
+        document.getElementById('staffEditId').value = '';
+        
+        const titleEl = document.getElementById('staffModalTitle');
+        if (titleEl) titleEl.textContent = 'Add Staff Member';
+        
+        const submitBtn = document.getElementById('staffSubmitBtn');
+        if (submitBtn) submitBtn.textContent = 'Add Staff';
+
+        const idInput = document.getElementById('staffIdInput');
+        if (idInput) {
+            idInput.disabled = false;
+            idInput.readOnly = false;
+        }
+
+        const statusGrp = document.getElementById('staffStatusGroup');
+        if (statusGrp) statusGrp.style.display = 'none';
+
         document.getElementById('staffJoinDateInput').value = new Date().toISOString().split('T')[0];
         this.openModal('staffModal');
     },
 
+    async openEditStaffModal(staffId) {
+        try {
+            let staffList = this.cachedStaff;
+            if (!staffList || staffList.length === 0) {
+                staffList = await api.getStaff();
+                this.cachedStaff = staffList;
+            }
+
+            const s = (staffList || []).find(item => item.id === staffId);
+            if (!s) {
+                this.showToast('Staff member not found', 'error');
+                return;
+            }
+
+            document.getElementById('staffForm').reset();
+            document.getElementById('staffEditId').value = s.id;
+
+            const titleEl = document.getElementById('staffModalTitle');
+            if (titleEl) titleEl.textContent = 'Edit Staff Member';
+
+            const submitBtn = document.getElementById('staffSubmitBtn');
+            if (submitBtn) submitBtn.textContent = 'Save Changes';
+
+            const idInput = document.getElementById('staffIdInput');
+            if (idInput) {
+                idInput.value = s.staff_id;
+                idInput.disabled = true; // Staff ID cannot be mutated
+            }
+
+            document.getElementById('staffNameInput').value = s.name || '';
+            document.getElementById('staffPhoneInput').value = s.phone || '';
+            document.getElementById('staffCnicInput').value = s.cnic || '';
+            document.getElementById('staffRoleSelect').value = s.role || 'Receptionist';
+            document.getElementById('staffSalaryInput').value = s.salary !== undefined ? s.salary : '';
+
+            // Handle date format (if DD-MM-YYYY convert to YYYY-MM-DD for input[type=date])
+            let joinDateVal = s.joining_date || '';
+            if (joinDateVal.includes('-')) {
+                const parts = joinDateVal.split('-');
+                if (parts[0].length === 2 && parts[2].length === 4) {
+                    joinDateVal = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                }
+            }
+            document.getElementById('staffJoinDateInput').value = joinDateVal;
+
+            const statusGrp = document.getElementById('staffStatusGroup');
+            if (statusGrp) {
+                statusGrp.style.display = 'block';
+                const statusSelect = document.getElementById('staffStatusSelect');
+                if (statusSelect) statusSelect.value = s.status || 'Active';
+            }
+
+            this.openModal('staffModal');
+        } catch (err) {
+            console.error('Failed to open edit staff modal:', err);
+            this.showToast('Could not load staff details', 'error');
+        }
+    },
+
     async submitStaffForm(e) {
         e.preventDefault();
+        const editId = document.getElementById('staffEditId').value;
+        const isEditing = Boolean(editId);
+
         const data = {
             staff_id: document.getElementById('staffIdInput').value.trim(),
             name: document.getElementById('staffNameInput').value.trim(),
@@ -1131,16 +1222,34 @@ const app = {
             role: document.getElementById('staffRoleSelect').value,
             salary: parseFloat(document.getElementById('staffSalaryInput').value) || 0,
             joining_date: document.getElementById('staffJoinDateInput').value,
-            status: 'Active'
+            status: isEditing && document.getElementById('staffStatusSelect') 
+                ? document.getElementById('staffStatusSelect').value 
+                : 'Active'
         };
 
         try {
-            await api.addStaff(data);
+            if (isEditing) {
+                await api.updateStaff(editId, data);
+                this.showToast('Staff member updated successfully', 'success');
+            } else {
+                await api.addStaff(data);
+                this.showToast('Staff member added successfully', 'success');
+            }
             this.closeModal('staffModal');
-            this.showToast('Staff member added successfully', 'success');
             await this.loadTrainersAndStaff();
         } catch (err) {
-            this.showToast(err.message || 'Failed to add staff member', 'error');
+            this.showToast(err.message || 'Failed to save staff member', 'error');
+        }
+    },
+
+    async deleteStaff(staffId) {
+        if (!confirm('Are you sure you want to remove this staff member?')) return;
+        try {
+            await api.deleteStaff(staffId);
+            this.showToast('Staff member removed successfully', 'success');
+            await this.loadTrainersAndStaff();
+        } catch (err) {
+            this.showToast(err.message || 'Failed to remove staff member', 'error');
         }
     },
 

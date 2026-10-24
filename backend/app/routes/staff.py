@@ -75,3 +75,14 @@ def update_staff(staff_id: int, data: StaffUpdate, db: Session = Depends(get_db)
 
     db.commit()
     return {"success": True, "message": "Staff member updated successfully"}
+
+@router.delete("/{staff_id}")
+def delete_staff(staff_id: int, db: Session = Depends(get_db)):
+    s = db.query(Staff).filter(Staff.id == staff_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    staff_name = s.name
+    db.delete(s)
+    log_activity(db, "Staff Deleted", f"Staff member removed: {staff_name}")
+    db.commit()
+    return {"success": True, "message": "Staff member deleted successfully"}

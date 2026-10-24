@@ -215,6 +215,9 @@ const views = {
                     <button class="btn btn-secondary btn-sm" onclick="app.openEditStaffModal(${s.id})">
                         <i class="fas fa-edit"></i> Edit
                     </button>
+                    <button class="btn btn-danger btn-sm" onclick="app.deleteStaff(${s.id})" title="Delete Staff" style="margin-left: 4px;">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </td>
             </tr>
         `;

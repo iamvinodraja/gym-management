@@ -221,6 +221,12 @@ const api = {
         });
     },
 
+    async deleteStaff(id) {
+        return this.request(`/staff/${id}`, {
+            method: 'DELETE'
+        });
+    },
+
     async getTrainers() {
         return this.request('/trainers');
     },
