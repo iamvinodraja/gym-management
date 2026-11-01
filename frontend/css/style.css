@@ -209,9 +209,14 @@ body {
     text-transform: uppercase;
 }
 
+.role-owner {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fbbf24;
+}
+
 .role-admin {
-    background: rgba(139, 92, 246, 0.2);
-    color: #c084fc;
+    background: rgba(6, 182, 212, 0.2);
+    color: #22d3ee;
 }
 
 .role-receptionist {

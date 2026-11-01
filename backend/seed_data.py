@@ -43,16 +43,33 @@ def seed():
             if not existing:
                 db.add(GymSetting(key_name=k, key_value=v))
 
-        admin_user = os.getenv("ADMIN_USERNAME", "healthiswealth").strip()
-        admin_pwd = os.getenv("ADMIN_PASSWORD", "secretgym123").strip()
-        admin_name = os.getenv("ADMIN_FULL_NAME", "Gym Owner").strip()
-        print(f"Seeding User ({admin_user})...")
+        owner_user = os.getenv("OWNER_USERNAME", "healthiswealth").strip()
+        owner_pwd = os.getenv("OWNER_PASSWORD", "secretgym123").strip()
+        owner_name = os.getenv("OWNER_FULL_NAME", "Gym Owner").strip()
 
-        # Remove previous default test users if they differ
-        if admin_user != "admin":
-            db.query(User).filter(User.username == "admin").delete()
-        db.query(User).filter(User.username == "reception").delete()
+        admin_user = os.getenv("ADMIN_USERNAME", "admin").strip()
+        admin_pwd = os.getenv("ADMIN_PASSWORD", "admin123").strip()
+        admin_name = os.getenv("ADMIN_FULL_NAME", "Gym Admin").strip()
 
+        print(f"Seeding Owner ({owner_user}) and Admin ({admin_user})...")
+
+        # 1. Seed or update Owner
+        existing_owner = db.query(User).filter(User.username == owner_user).first()
+        if not existing_owner:
+            db.add(User(
+                username=owner_user,
+                password_hash=hash_password(owner_pwd),
+                full_name=owner_name,
+                role="owner",
+                status="active"
+            ))
+        else:
+            existing_owner.role = "owner"
+            existing_owner.password_hash = hash_password(owner_pwd)
+            existing_owner.full_name = owner_name
+            existing_owner.status = "active"
+
+        # 2. Seed or update Admin
         existing_admin = db.query(User).filter(User.username == admin_user).first()
         if not existing_admin:
             db.add(User(
@@ -63,6 +80,7 @@ def seed():
                 status="active"
             ))
         else:
+            existing_admin.role = "admin"
             existing_admin.password_hash = hash_password(admin_pwd)
             existing_admin.full_name = admin_name
             existing_admin.status = "active"

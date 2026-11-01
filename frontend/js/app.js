@@ -45,8 +45,12 @@ const app = {
             await this.loadPlans();
             await this.loadTrainers();
 
-            // Navigate to initial view
-            this.navigateTo('dashboard');
+            // Navigate to initial view based on role
+            if (me.role === 'owner') {
+                this.navigateTo('dashboard');
+            } else {
+                this.navigateTo('members');
+            }
         } catch (err) {
             console.warn('Session expired or unauthorized. Showing login page:', err);
             api.clearAuth();
@@ -89,10 +93,14 @@ const app = {
             this.hideLoginScreen();
             this.showToast(`Signed in successfully as ${res.user.full_name}`, 'success');
 
-            // Load initial data and open dashboard
+            // Load initial data and open appropriate view
             await this.loadPlans();
             await this.loadTrainers();
-            this.navigateTo('dashboard');
+            if (res.user.role === 'owner') {
+                this.navigateTo('dashboard');
+            } else {
+                this.navigateTo('members');
+            }
         } catch (err) {
             if (errAlert && errText) {
                 errText.textContent = err.message || 'Invalid username or password. Access denied.';
@@ -138,6 +146,12 @@ const app = {
                 roleEl.className = `user-role-badge role-${u.role.toLowerCase()}`;
             }
             if (avatarEl) avatarEl.textContent = (u.full_name || u.username).charAt(0).toUpperCase();
+
+            // Role-based visibility: Owner has full access, Admin only has Members, Attendance, and Payments
+            const isOwner = (u.role === 'owner');
+            document.querySelectorAll('[data-owner-only="true"]').forEach(el => {
+                el.style.display = isOwner ? '' : 'none';
+            });
         }
     },
 
@@ -161,6 +175,15 @@ const app = {
     },
 
     navigateTo(viewName) {
+        // Enforce Owner vs Admin route access
+        const u = this.state.currentUser;
+        const isOwner = u && (u.role === 'owner');
+        const ownerOnlyViews = ['dashboard', 'memberships', 'expenses', 'trainers', 'reports', 'settings'];
+
+        if (!isOwner && ownerOnlyViews.includes(viewName)) {
+            viewName = 'members';
+        }
+
         this.state.currentView = viewName;
 
         // Update active nav link
@@ -262,7 +285,9 @@ const app = {
                                     <button class="btn btn-cyan btn-sm" onclick="app.quickCheckIn(${m.id})">
                                         <i class="fas fa-sign-in-alt"></i> Check In
                                     </button>
-                                    <button class="btn btn-amber btn-sm" onclick="app.openPaymentModal(${m.id})">Pay</button>
+                                    <button class="btn btn-primary btn-sm" onclick="app.openRenewModal(${m.id})">
+                                        <i class="fas fa-sync-alt"></i> Renew
+                                    </button>
                                 </div>
                             </div>
                         `).join('');
@@ -697,12 +722,50 @@ const app = {
     },
 
     // --- Renewal Flow ---
-    async openRenewModal(memberId) {
+    async openRenewModal(memberId = null) {
         try {
-            const m = await api.getMember(memberId);
             const modal = document.getElementById('renewMembershipModal');
             if (!modal) return;
 
+            const memberSelectContainer = document.getElementById('renewMemberSelectContainer');
+            const memberStaticDisplay = document.getElementById('renewMemberStaticDisplay');
+            const memberSelect = document.getElementById('renewMemberSelect');
+
+            if (!memberId) {
+                // Opened without pre-selected member (from header or payments view)
+                if (memberSelectContainer) memberSelectContainer.style.display = 'block';
+                if (memberStaticDisplay) memberStaticDisplay.style.display = 'none';
+
+                // Fetch members if empty
+                if (!this.state.members || this.state.members.length === 0) {
+                    this.state.members = await api.getMembers();
+                }
+
+                if (memberSelect) {
+                    memberSelect.innerHTML = '<option value="">-- Choose Member to Renew --</option>' + 
+                        this.state.members.map(m => `
+                            <option value="${m.id}">${m.full_name} (${m.member_id}) - Exp: ${m.expiry_date || 'N/A'}</option>
+                        `).join('');
+                }
+
+                document.getElementById('renewMemberIdVal').value = '';
+                const planSelect = document.getElementById('renewPlanSelect');
+                planSelect.innerHTML = this.state.plans.filter(p => p.is_active).map(p => `
+                    <option value="${p.id}" data-price="${p.price}" data-days="${p.duration_days}">
+                        ${p.name} - ${p.price_formatted} (${p.duration_days} days)
+                    </option>
+                `).join('');
+
+                this.onRenewPlanChange();
+                this.openModal('renewMembershipModal');
+                return;
+            }
+
+            // Opened for a specific member
+            if (memberSelectContainer) memberSelectContainer.style.display = 'none';
+            if (memberStaticDisplay) memberStaticDisplay.style.display = 'block';
+
+            const m = await api.getMember(memberId);
             document.getElementById('renewMemberIdVal').value = m.id;
             document.getElementById('renewMemberNameDisplay').textContent = `${m.full_name} (${m.member_id})`;
             document.getElementById('renewCurrentExpiryDisplay').textContent = m.expiry_date || 'None';
@@ -719,6 +782,26 @@ const app = {
             this.openModal('renewMembershipModal');
         } catch (err) {
             this.showToast('Failed to prepare renewal modal', 'error');
+        }
+    },
+
+    async onSelectRenewalMember() {
+        const select = document.getElementById('renewMemberSelect');
+        if (!select || !select.value) return;
+        const memberId = parseInt(select.value);
+        if (!memberId) return;
+
+        try {
+            const m = await api.getMember(memberId);
+            document.getElementById('renewMemberIdVal').value = m.id;
+
+            const planSelect = document.getElementById('renewPlanSelect');
+            if (planSelect && m.current_plan_id) {
+                planSelect.value = m.current_plan_id;
+            }
+            this.onRenewPlanChange();
+        } catch (err) {
+            console.error('Failed to select renewal member:', err);
         }
     },
 
@@ -873,6 +956,7 @@ const app = {
     async showReceipt(paymentId) {
         try {
             const data = await api.getReceipt(paymentId);
+            this.state.currentReceipt = data;
             const container = document.getElementById('receiptContentContainer');
             if (container) {
                 container.innerHTML = views.renderReceiptHTML(data);
@@ -880,6 +964,57 @@ const app = {
             this.openModal('receiptModal');
         } catch (err) {
             this.showToast('Failed to load receipt slip', 'error');
+        }
+    },
+
+    sendReceiptViaWhatsApp() {
+        const data = this.state.currentReceipt;
+        if (!data || !data.member) {
+            this.showToast('No receipt data available to send', 'error');
+            return;
+        }
+        const m = data.member;
+        const r = data.receipt;
+        const g = data.gym;
+        const a = data.amount;
+
+        const cleanPhone = (m.phone || '').replace(/[^0-9]/g, '');
+        let waPhone = cleanPhone;
+        if (waPhone.startsWith('0')) waPhone = '92' + waPhone.substring(1);
+        else if (!waPhone.startsWith('92') && waPhone.length === 10) waPhone = '92' + waPhone;
+
+        const text = 
+`*${g.name || 'Power Fitness Gym'}*
+🧾 *FEE RENEWAL RECEIPT SLIP*
+━━━━━━━━━━━━━━━━━━━━
+*Receipt No:* ${r.receipt_no}
+*Date:* ${r.date} ${r.created_time || ''}
+*Member:* ${m.name} (${m.member_id})
+*Plan:* ${m.plan_name}
+*Valid Expiry:* ${m.expiry_date || 'N/A'}
+━━━━━━━━━━━━━━━━━━━━
+*Amount Paid:* ${a.paid_formatted}
+*Payment Method:* ${r.payment_method}
+*Remaining Balance:* ${m.remaining_balance_formatted}
+*Received By:* ${r.received_by}
+━━━━━━━━━━━━━━━━━━━━
+${g.footer || 'Thank you for your payment!'}
+_Keep this message as your official fee receipt._`;
+
+        const url = waPhone 
+            ? `https://wa.me/${waPhone}?text=${encodeURIComponent(text)}`
+            : `https://wa.me/?text=${encodeURIComponent(text)}`;
+
+        window.open(url, '_blank');
+    },
+
+    async sendReceiptViaWhatsAppById(paymentId) {
+        try {
+            const data = await api.getReceipt(paymentId);
+            this.state.currentReceipt = data;
+            this.sendReceiptViaWhatsApp();
+        } catch (err) {
+            this.showToast('Could not load receipt for WhatsApp', 'error');
         }
     },
 

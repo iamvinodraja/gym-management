@@ -79,7 +79,7 @@
         </div>
 
         <ul class="nav-menu">
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link active" data-view="dashboard" id="navDashboard">
                     <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
@@ -97,7 +97,7 @@
                     <span>Attendance</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link" data-view="memberships" id="navMemberships">
                     <i class="fas fa-id-card"></i>
                     <span>Plans & Packages</span>
@@ -109,25 +109,25 @@
                     <span>Fee & Payments</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link" data-view="expenses" id="navExpenses">
                     <i class="fas fa-receipt"></i>
                     <span>Expenses</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link" data-view="trainers" id="navTrainers">
                     <i class="fas fa-user-ninja"></i>
                     <span>Trainers & Staff</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link" data-view="reports" id="navReports">
                     <i class="fas fa-file-invoice-dollar"></i>
                     <span>Reports</span>
                 </a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item" data-owner-only="true">
                 <a class="nav-link" data-view="settings" id="navSettings">
                     <i class="fas fa-cog"></i>
                     <span>Gym Settings</span>
@@ -184,8 +184,8 @@
                 <button class="btn btn-cyan" onclick="app.navigateTo('attendance')" id="btnTopCheckIn">
                     <i class="fas fa-check-circle"></i> Check In
                 </button>
-                <button class="btn btn-amber" onclick="app.openPaymentModal()" id="btnTopReceivePayment">
-                    <i class="fas fa-hand-holding-usd"></i> Receive Fee
+                <button class="btn btn-secondary" onclick="app.openRenewModal()" id="btnTopRenew">
+                    <i class="fas fa-sync-alt"></i> Renew Membership
                 </button>
             </div>
         </header>
@@ -535,8 +535,8 @@
                         <h1>Fee & Payment Management</h1>
                         <p>Record partial or full fee collections, track outstanding balances, and issue slips.</p>
                     </div>
-                    <button class="btn btn-primary" onclick="app.openPaymentModal()">
-                        <i class="fas fa-hand-holding-usd"></i> + Receive Fee Payment
+                    <button class="btn btn-primary" onclick="app.openRenewModal()">
+                        <i class="fas fa-sync-alt"></i> + Renew Membership / Fee
                     </button>
                 </div>
 
@@ -1003,9 +1003,6 @@
                         <button class="btn btn-cyan btn-sm" onclick="app.quickCheckIn(document.getElementById('memberProfileModal').dataset.memberId)">
                             <i class="fas fa-sign-in-alt"></i> Check In Now
                         </button>
-                        <button class="btn btn-amber btn-sm" onclick="app.openPaymentModal(document.getElementById('memberProfileModal').dataset.memberId)">
-                            <i class="fas fa-money-bill-wave"></i> Receive Payment
-                        </button>
                         <button class="btn btn-primary btn-sm" onclick="app.openRenewModal(document.getElementById('memberProfileModal').dataset.memberId)">
                             <i class="fas fa-sync-alt"></i> Renew Membership
                         </button>
@@ -1086,7 +1083,14 @@
                 <form id="renewMembershipForm" onsubmit="app.submitRenewal(event)">
                     <input type="hidden" id="renewMemberIdVal">
                     
-                    <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px;">
+                    <div id="renewMemberSelectContainer" class="form-group full-width" style="display: none; margin-bottom: 16px;">
+                        <label class="form-label">Select Member to Renew *</label>
+                        <select id="renewMemberSelect" class="form-control" onchange="app.onSelectRenewalMember()">
+                            <option value="">-- Choose Member --</option>
+                        </select>
+                    </div>
+
+                    <div id="renewMemberStaticDisplay" style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px;">
                         <div style="font-size: 14px; font-weight: 700; color: #fff;" id="renewMemberNameDisplay">Ali Raza Khan</div>
                         <div style="font-size: 12px; color: var(--text-muted);">Current Expiry: <span id="renewCurrentExpiryDisplay" style="color: var(--accent-amber); font-weight: bold;">12-09-2026</span></div>
                     </div>
@@ -1211,6 +1215,9 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary modal-close">Close</button>
+                <button type="button" class="btn btn-whatsapp" id="btnReceiptWhatsApp" onclick="app.sendReceiptViaWhatsApp()">
+                    <i class="fab fa-whatsapp"></i> Send on WhatsApp
+                </button>
                 <button type="button" class="btn btn-primary" onclick="app.printCurrentReceipt()">
                     <i class="fas fa-print"></i> Print Receipt Slip
                 </button>

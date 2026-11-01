@@ -7,9 +7,13 @@ services:
     envVars:
       - key: SUPABASE_DB_URL
         sync: false
-      - key: ADMIN_USERNAME
+      - key: OWNER_USERNAME
         value: healthiswealth
-      - key: ADMIN_PASSWORD
+      - key: OWNER_PASSWORD
         value: secretgym123
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: admin123
       - key: SECRET_KEY
         generateValue: true

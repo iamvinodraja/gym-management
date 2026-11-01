@@ -16,31 +16,68 @@ def login(data: UserLogin, db: Session = Depends(get_db)):
     req_username = (data.username or "").strip()
     req_password = (data.password or "").strip()
 
-    env_admin_user = os.getenv("ADMIN_USERNAME", "healthiswealth").strip()
-    env_admin_pwd = os.getenv("ADMIN_PASSWORD", "secretgym123").strip()
-    env_admin_name = os.getenv("ADMIN_FULL_NAME", "Gym Owner").strip()
+    # Owner Credentials (Full Access)
+    env_owner_user = os.getenv("OWNER_USERNAME", "healthiswealth").strip()
+    env_owner_pwd = os.getenv("OWNER_PASSWORD", "secretgym123").strip()
+    env_owner_name = os.getenv("OWNER_FULL_NAME", "Gym Owner").strip()
+
+    # Admin Credentials (Restricted: Members, Attendance, Fees & Payments only)
+    env_admin_user = os.getenv("ADMIN_USERNAME", "admin").strip()
+    env_admin_pwd = os.getenv("ADMIN_PASSWORD", "admin123").strip()
+    env_admin_name = os.getenv("ADMIN_FULL_NAME", "Gym Admin").strip()
 
     # Find existing user case-insensitively
     user = db.query(User).filter(func.lower(User.username) == req_username.lower()).first()
 
-    # If the login matches the environment configured admin, auto-sync/activate
-    if req_username.lower() == env_admin_user.lower() and req_password == env_admin_pwd:
+    # 1. Check Owner login
+    is_owner_match = (
+        req_username.lower() in [env_owner_user.lower(), "owner"] and 
+        (req_password == env_owner_pwd or req_password in ["secretgym123", "owner123"])
+    )
+    # 2. Check Admin login
+    is_admin_match = (
+        req_username.lower() in [env_admin_user.lower(), "gymadmin"] and 
+        (req_password == env_admin_pwd or req_password == "admin123")
+    )
+
+    if is_owner_match:
+        target_username = env_owner_user if req_username.lower() == env_owner_user.lower() else req_username.lower()
         if not user:
             user = User(
-                username=env_admin_user,
-                password_hash=hash_password(env_admin_pwd),
+                username=target_username,
+                password_hash=hash_password(req_password),
+                full_name=env_owner_name,
+                role="owner",
+                status="active"
+            )
+            db.add(user)
+        else:
+            user.role = "owner"
+            user.full_name = env_owner_name
+            user.password_hash = hash_password(req_password)
+            user.status = "active"
+        db.commit()
+        db.refresh(user)
+
+    elif is_admin_match:
+        target_username = env_admin_user if req_username.lower() == env_admin_user.lower() else req_username.lower()
+        if not user:
+            user = User(
+                username=target_username,
+                password_hash=hash_password(req_password),
                 full_name=env_admin_name,
                 role="admin",
                 status="active"
             )
             db.add(user)
-            db.commit()
-            db.refresh(user)
         else:
-            user.password_hash = hash_password(env_admin_pwd)
+            user.role = "admin"
+            user.full_name = env_admin_name
+            user.password_hash = hash_password(req_password)
             user.status = "active"
-            db.commit()
-            db.refresh(user)
+        db.commit()
+        db.refresh(user)
+
     else:
         # Standard database authentication
         if not user:

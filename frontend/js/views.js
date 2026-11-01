@@ -42,11 +42,8 @@ const views = {
                         <button class="btn btn-secondary btn-sm" onclick="app.viewMemberProfile(${m.id})" title="View Profile">
                             <i class="fas fa-eye"></i> View
                         </button>
-                        <button class="btn btn-primary btn-sm" onclick="app.openRenewModal(${m.id})" title="Renew Plan">
+                        <button class="btn btn-primary btn-sm" onclick="app.openRenewModal(${m.id})" title="Renew Membership">
                             <i class="fas fa-sync-alt"></i> Renew
-                        </button>
-                        <button class="btn btn-amber btn-sm" onclick="app.openPaymentModal(${m.id})" title="Receive Payment">
-                            <i class="fas fa-money-bill-wave"></i> Pay
                         </button>
                         <button class="btn btn-cyan btn-sm btn-icon-only" onclick="app.quickCheckIn(${m.id})" title="Check In">
                             <i class="fas fa-sign-in-alt"></i>
@@ -155,9 +152,14 @@ const views = {
                 <td style="color: var(--text-dim); font-size: 12px;">${receivedBy}</td>
                 <td>
                     ${paymentDbId ? `
-                        <button class="btn btn-secondary btn-sm" onclick="app.showReceipt(${paymentDbId})">
-                            <i class="fas fa-receipt"></i> Slip
-                        </button>
+                        <div style="display: flex; gap: 6px;">
+                            <button class="btn btn-secondary btn-sm" onclick="app.showReceipt(${paymentDbId})" title="View Slip">
+                                <i class="fas fa-receipt"></i> Slip
+                            </button>
+                            <button class="btn btn-whatsapp btn-sm btn-icon-only" onclick="app.sendReceiptViaWhatsAppById(${paymentDbId})" title="Send WhatsApp Receipt">
+                                <i class="fab fa-whatsapp"></i>
+                            </button>
+                        </div>
                     ` : ''}
                 </td>
             </tr>
