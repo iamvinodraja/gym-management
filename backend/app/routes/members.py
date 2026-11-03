@@ -21,6 +21,8 @@ from app.services.gym_service import (
     format_date_pk,
     format_currency_pk,
     log_activity,
+    get_pakistan_date,
+    get_pakistan_now,
 )
 from app.services.auth_service import get_current_user
 
@@ -127,7 +129,7 @@ def quick_search(q: str = Query(..., min_length=1), db: Session = Depends(get_db
     curr_sym = curr_setting.key_value if curr_setting else "Rs."
 
     results = []
-    today = datetime.date.today()
+    today = get_pakistan_date()
     for m in members:
         # Check if checked in today
         today_checkin = (
@@ -266,7 +268,9 @@ def add_member(data: MemberCreate, db: Session = Depends(get_db)):
         gen_id = generate_member_id(db)
 
         # Dates setup
-        join_d = data.join_date or datetime.date.today()
+        pk_today = get_pakistan_date()
+        pk_now = get_pakistan_now()
+        join_d = data.join_date or pk_today
         start_d = data.start_date or join_d
 
         plan = None
@@ -307,7 +311,9 @@ def add_member(data: MemberCreate, db: Session = Depends(get_db)):
             monthly_fee=fee,
             discount=discount,
             outstanding_amount=outstanding,
-            status=status
+            status=status,
+            created_at=pk_now,
+            updated_at=pk_now
         )
         db.add(new_member)
         db.flush()
@@ -323,11 +329,12 @@ def add_member(data: MemberCreate, db: Session = Depends(get_db)):
                 discount=discount,
                 amount_paid=amount_paid,
                 remaining_balance=outstanding,
-                notes="Initial Registration Membership"
+                notes="Initial Registration Membership",
+                created_at=pk_now
             )
             db.add(history_entry)
 
-        # If initial payment made, create payment record
+        # If initial payment made, create payment record using LIVE Pakistan date and time
         receipt_id = None
         if amount_paid > 0:
             pay_id = generate_payment_id(db)
@@ -336,10 +343,11 @@ def add_member(data: MemberCreate, db: Session = Depends(get_db)):
                 member_id=new_member.id,
                 amount=amount_paid,
                 discount=discount,
-                payment_date=join_d,
+                payment_date=pk_today,
                 payment_method=data.payment_method or "Cash",
                 description=f"Registration & Plan fee ({plan.name if plan else 'Custom'})",
-                received_by="Reception"
+                received_by="Reception",
+                created_at=pk_now
             )
             db.add(payment_record)
             db.flush()

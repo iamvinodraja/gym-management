@@ -4,13 +4,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from app.database import get_db
 from app.models.models import Member, Payment, Attendance, ActivityLog, GymSetting
-from app.services.gym_service import format_date_pk, calculate_member_status, format_currency_pk
+from app.services.gym_service import format_date_pk, calculate_member_status, format_currency_pk, get_pakistan_date
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 @router.get("")
 def get_dashboard_data(db: Session = Depends(get_db)):
-    today = datetime.date.today()
+    today = get_pakistan_date()
     first_of_month = datetime.date(today.year, today.month, 1)
 
     # Fetch gym settings for warning days

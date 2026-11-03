@@ -1,4 +1,5 @@
 import datetime
+from datetime import timezone, timedelta
 from sqlalchemy import (
     Column,
     Integer,
@@ -15,6 +16,18 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from app.database import Base
 
+# Pakistan Standard Time (PKT, UTC+5)
+PKT_ZONE = timezone(timedelta(hours=5))
+
+def get_pk_now():
+    return datetime.datetime.now(PKT_ZONE).replace(tzinfo=None)
+
+def get_pk_today():
+    return datetime.datetime.now(PKT_ZONE).date()
+
+def get_pk_time():
+    return datetime.datetime.now(PKT_ZONE).time()
+
 class User(Base):
     __tablename__ = "users"
 
@@ -24,7 +37,7 @@ class User(Base):
     full_name = Column(String(100), nullable=False)
     role = Column(String(20), default="receptionist", nullable=False)  # admin, receptionist
     status = Column(String(20), default="active", nullable=False)  # active, inactive
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
 class Trainer(Base):
     __tablename__ = "trainers"
@@ -35,7 +48,7 @@ class Trainer(Base):
     specialization = Column(String(100), default="General Fitness")
     salary = Column(Float, default=0.0)
     status = Column(String(20), default="active")
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
     members = relationship("Member", back_populates="trainer")
 
@@ -51,7 +64,7 @@ class Staff(Base):
     salary = Column(Float, default=0.0)
     joining_date = Column(Date, nullable=False)
     status = Column(String(20), default="Active")
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
 class MembershipPlan(Base):
     __tablename__ = "membership_plans"
@@ -62,7 +75,7 @@ class MembershipPlan(Base):
     price = Column(Float, nullable=False)
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
     members = relationship("Member", back_populates="current_plan")
 
@@ -79,7 +92,7 @@ class Member(Base):
     gender = Column(String(10), default="Male")  # Male, Female, Other
     dob = Column(Date, nullable=True)
     address = Column(Text, nullable=True)
-    join_date = Column(Date, nullable=False, default=datetime.date.today)
+    join_date = Column(Date, nullable=False, default=get_pk_today)
     photo_url = Column(String(255), nullable=True)
     notes = Column(Text, nullable=True)
 
@@ -93,8 +106,8 @@ class Member(Base):
     outstanding_amount = Column(Float, default=0.0)
     status = Column(String(20), default="Active")  # Active, Expiring Soon, Expired, Inactive
 
-    created_at = Column(DateTime, default=datetime.datetime.now)
-    updated_at = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
+    updated_at = Column(DateTime, default=get_pk_now, onupdate=get_pk_now)
 
     trainer = relationship("Trainer", back_populates="members")
     current_plan = relationship("MembershipPlan", back_populates="members")
@@ -115,7 +128,7 @@ class Membership(Base):
     amount_paid = Column(Float, default=0.0)
     remaining_balance = Column(Float, default=0.0)
     notes = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
     member = relationship("Member", back_populates="memberships")
     plan = relationship("MembershipPlan")
@@ -128,11 +141,11 @@ class Payment(Base):
     member_id = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
     amount = Column(Float, nullable=False)
     discount = Column(Float, default=0.0)
-    payment_date = Column(Date, nullable=False, default=datetime.date.today, index=True)
+    payment_date = Column(Date, nullable=False, default=get_pk_today, index=True)
     payment_method = Column(String(30), default="Cash")  # Cash, Bank Transfer, Easypaisa, JazzCash, Other
     description = Column(String(255), nullable=True)
     received_by = Column(String(100), default="Reception")
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
     member = relationship("Member", back_populates="payments")
 
@@ -141,11 +154,11 @@ class Attendance(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     member_id = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False)
-    date = Column(Date, nullable=False, default=datetime.date.today, index=True)
-    check_in_time = Column(Time, nullable=False)
+    date = Column(Date, nullable=False, default=get_pk_today, index=True)
+    check_in_time = Column(Time, nullable=False, default=get_pk_time)
     check_out_time = Column(Time, nullable=True)
     status = Column(String(20), default="Checked In")  # Checked In, Checked Out
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
     member = relationship("Member", back_populates="attendances")
 
@@ -155,10 +168,10 @@ class Expense(Base):
     id = Column(Integer, primary_key=True, index=True)
     category = Column(String(50), nullable=False)  # Electricity, Rent, Equipment, Cleaning, Staff Salary, Maintenance, Water, Generator, Other
     amount = Column(Float, nullable=False)
-    date = Column(Date, nullable=False, default=datetime.date.today)
+    date = Column(Date, nullable=False, default=get_pk_today)
     description = Column(Text, nullable=True)
     paid_by = Column(String(100), nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.now)
+    created_at = Column(DateTime, default=get_pk_now)
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
@@ -167,7 +180,7 @@ class ActivityLog(Base):
     action = Column(String(50), nullable=False)
     description = Column(Text, nullable=False)
     performed_by = Column(String(100), default="System")
-    timestamp = Column(DateTime, default=datetime.datetime.now)
+    timestamp = Column(DateTime, default=get_pk_now)
 
 class GymSetting(Base):
     __tablename__ = "gym_settings"
@@ -175,4 +188,4 @@ class GymSetting(Base):
     id = Column(Integer, primary_key=True, index=True)
     key_name = Column(String(50), unique=True, nullable=False)
     key_value = Column(Text, nullable=False)
-    updated_at = Column(DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now)
+    updated_at = Column(DateTime, default=get_pk_now, onupdate=get_pk_now)

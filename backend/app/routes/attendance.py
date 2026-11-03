@@ -6,13 +6,13 @@ from sqlalchemy import desc
 from app.database import get_db
 from app.models.models import Attendance, Member
 from app.schemas.schemas import AttendanceCheckIn, AttendanceCheckOut
-from app.services.gym_service import format_date_pk, log_activity, parse_date_pk
+from app.services.gym_service import format_date_pk, log_activity, parse_date_pk, get_pakistan_date, get_pakistan_time, get_pakistan_now
 
 router = APIRouter(prefix="/api/attendance", tags=["attendance"])
 
 @router.get("/today")
 def get_today_attendance(db: Session = Depends(get_db)):
-    today = datetime.date.today()
+    today = get_pakistan_date()
     records = (
         db.query(Attendance)
         .filter(Attendance.date == today)
@@ -91,13 +91,14 @@ def check_in(data: AttendanceCheckIn, db: Session = Depends(get_db)):
     if not member:
         raise HTTPException(status_code=404, detail="Member not found")
 
-    today = datetime.date.today()
-    now_time = datetime.datetime.now().time()
+    pk_today = get_pakistan_date()
+    pk_now_time = get_pakistan_time()
+    pk_now = get_pakistan_now()
 
     # Duplicate check for today
     existing = (
         db.query(Attendance)
-        .filter(Attendance.member_id == member.id, Attendance.date == today)
+        .filter(Attendance.member_id == member.id, Attendance.date == pk_today)
         .order_by(Attendance.id.desc())
         .first()
     )
@@ -111,21 +112,22 @@ def check_in(data: AttendanceCheckIn, db: Session = Depends(get_db)):
 
     attendance = Attendance(
         member_id=member.id,
-        date=today,
-        check_in_time=now_time,
-        status="Checked In"
+        date=pk_today,
+        check_in_time=pk_now_time,
+        status="Checked In",
+        created_at=pk_now
     )
     db.add(attendance)
-    log_activity(db, "Member Check-In", f"{member.full_name} ({member.member_id}) checked in at {now_time.strftime('%I:%M %p')}")
+    log_activity(db, "Member Check-In", f"{member.full_name} ({member.member_id}) checked in at {pk_now_time.strftime('%I:%M %p')}")
     db.commit()
     db.refresh(attendance)
 
     return {
         "success": True,
         "duplicate": False,
-        "message": f"Checked in {member.full_name} successfully at {now_time.strftime('%I:%M %p')}",
+        "message": f"Checked in {member.full_name} successfully at {pk_now_time.strftime('%I:%M %p')}",
         "attendance_id": attendance.id,
-        "check_in_time": now_time.strftime("%I:%M %p")
+        "check_in_time": pk_now_time.strftime("%I:%M %p")
     }
 
 @router.post("/check-out")
@@ -134,16 +136,16 @@ def check_out(data: AttendanceCheckOut, db: Session = Depends(get_db)):
     if not att:
         raise HTTPException(status_code=404, detail="Attendance record not found")
 
-    now_time = datetime.datetime.now().time()
-    att.check_out_time = now_time
+    pk_now_time = get_pakistan_time()
+    att.check_out_time = pk_now_time
     att.status = "Checked Out"
 
     m = att.member
-    log_activity(db, "Member Check-Out", f"{m.full_name if m else 'Member'} checked out at {now_time.strftime('%I:%M %p')}")
+    log_activity(db, "Member Check-Out", f"{m.full_name if m else 'Member'} checked out at {pk_now_time.strftime('%I:%M %p')}")
     db.commit()
 
     return {
         "success": True,
-        "message": f"Checked out successfully at {now_time.strftime('%I:%M %p')}",
-        "check_out_time": now_time.strftime("%I:%M %p")
+        "message": f"Checked out successfully at {pk_now_time.strftime('%I:%M %p')}",
+        "check_out_time": pk_now_time.strftime("%I:%M %p")
     }

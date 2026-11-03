@@ -1,13 +1,51 @@
 import datetime
 import re
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.models.models import Member, Payment, ActivityLog, GymSetting
 
-def format_date_pk(d: Optional[datetime.date]) -> str:
+# Pakistan Standard Time (PKT) is strictly UTC+5 (no daylight saving time)
+PKT_ZONE = datetime.timezone(datetime.timedelta(hours=5))
+
+def get_pakistan_now() -> datetime.datetime:
+    """Returns the current live Pakistan datetime (PKT, UTC+5) as naive datetime."""
+    return datetime.datetime.now(PKT_ZONE).replace(tzinfo=None)
+
+def get_pakistan_date() -> datetime.date:
+    """Returns the current live Pakistan date (PKT, UTC+5)."""
+    return datetime.datetime.now(PKT_ZONE).date()
+
+def get_pakistan_time() -> datetime.time:
+    """Returns the current live Pakistan time (PKT, UTC+5)."""
+    return datetime.datetime.now(PKT_ZONE).time()
+
+def to_pakistan_datetime(dt: Optional[datetime.datetime]) -> Optional[datetime.datetime]:
+    """
+    Ensures datetime is in Pakistan Standard Time (PKT, UTC+5).
+    If dt is naive and from a server running in UTC, adjusts it to PKT.
+    """
+    if not dt:
+        return None
+    if dt.tzinfo is not None:
+        return dt.astimezone(PKT_ZONE).replace(tzinfo=None)
+    return dt
+
+def format_time_pk(val: Optional[Union[datetime.datetime, datetime.time]]) -> str:
+    """Formats datetime or time to Pakistani 12-hour format e.g. '10:54 PM'."""
+    if not val:
+        return ""
+    if isinstance(val, datetime.time):
+        return val.strftime("%I:%M %p")
+    if isinstance(val, datetime.datetime):
+        return val.strftime("%I:%M %p")
+    return str(val)
+
+def format_date_pk(d: Optional[Union[datetime.date, datetime.datetime]]) -> str:
     if not d:
         return ""
+    if isinstance(d, datetime.datetime):
+        return d.strftime("%d-%m-%Y")
     return d.strftime("%d-%m-%Y")
 
 def parse_date_pk(date_str: Optional[str]) -> Optional[datetime.date]:
@@ -57,7 +95,7 @@ def generate_member_id(db: Session) -> str:
 
 def generate_payment_id(db: Session) -> str:
     """Generates unique sequential ID like REC-2026-0010 without collision risk"""
-    year = datetime.date.today().year
+    year = get_pakistan_date().year
     prefix = f"REC-{year}-"
     
     payments = db.query(Payment.payment_id).filter(Payment.payment_id.like(f"{prefix}%")).all()
@@ -84,7 +122,7 @@ def calculate_member_status(expiry_date: Optional[datetime.date], warning_days: 
     if not expiry_date:
         return ("No Plan", 0)
     
-    today = datetime.date.today()
+    today = get_pakistan_date()
     delta = (expiry_date - today).days
 
     if delta < 0:
@@ -100,7 +138,7 @@ def log_activity(db: Session, action: str, description: str, performed_by: str =
             action=action,
             description=description,
             performed_by=performed_by,
-            timestamp=datetime.datetime.now()
+            timestamp=get_pakistan_now()
         )
         db.add(log)
     except Exception as e:

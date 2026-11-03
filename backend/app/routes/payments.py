@@ -20,6 +20,9 @@ from app.services.gym_service import (
     log_activity,
     get_gym_setting,
     parse_date_pk,
+    get_pakistan_date,
+    get_pakistan_now,
+    format_time_pk,
 )
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
@@ -90,7 +93,7 @@ def list_payments(
 
 @router.get("/summary")
 def get_payment_summary(db: Session = Depends(get_db)):
-    today = datetime.date.today()
+    today = get_pakistan_date()
     first_of_month = datetime.date(today.year, today.month, 1)
 
     today_sum = db.query(func.sum(Payment.amount)).filter(Payment.payment_date == today).scalar() or 0.0
@@ -160,14 +163,15 @@ def renew_membership(data: RenewalCreate, db: Session = Depends(get_db)):
     if not plan:
         raise HTTPException(status_code=404, detail="Membership plan not found")
 
-    today = datetime.date.today()
+    pk_today = get_pakistan_date()
+    pk_now = get_pakistan_now()
 
     # Determine start and new expiry date
     # If member is currently active and expiry_date > today, start from current expiry
-    if data.start_from_expiry and member.expiry_date and member.expiry_date >= today:
+    if data.start_from_expiry and member.expiry_date and member.expiry_date >= pk_today:
         new_start_date = member.expiry_date
     else:
-        new_start_date = today
+        new_start_date = pk_today
 
     new_expiry_date = new_start_date + datetime.timedelta(days=plan.duration_days)
 
@@ -201,11 +205,12 @@ def renew_membership(data: RenewalCreate, db: Session = Depends(get_db)):
         discount=discount,
         amount_paid=amount_paid,
         remaining_balance=new_unpaid,
-        notes=data.notes or f"Renewed for {plan.name}"
+        notes=data.notes or f"Renewed for {plan.name}",
+        created_at=pk_now
     )
     db.add(history)
 
-    # Create payment record if any amount paid
+    # Create payment record if any amount paid - uses LIVE Pakistan date/time
     receipt_code = None
     payment_id_val = None
     if amount_paid > 0:
@@ -215,10 +220,11 @@ def renew_membership(data: RenewalCreate, db: Session = Depends(get_db)):
             member_id=member.id,
             amount=amount_paid,
             discount=discount,
-            payment_date=today,
+            payment_date=pk_today,
             payment_method=data.payment_method or "Cash",
             description=f"Renewal fee for {plan.name}",
-            received_by="Reception"
+            received_by="Reception",
+            created_at=pk_now
         )
         db.add(payment_entry)
         db.flush()
@@ -266,7 +272,7 @@ def get_receipt_data(payment_id: int, db: Session = Depends(get_db)):
         "receipt": {
             "receipt_no": p.payment_id,
             "date": format_date_pk(p.payment_date),
-            "created_time": p.created_at.strftime("%I:%M %p") if p.created_at else "",
+            "created_time": format_time_pk(p.created_at) if p.created_at else "",
             "payment_method": p.payment_method,
             "received_by": p.received_by,
             "description": p.description or f"Gym Fee - {plan_name}"
